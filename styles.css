@@ -1,0 +1,198 @@
+/* ============================================== RAX EXCHANGE - styles.css Scarcity Economy Simulator ================================================= */
+
+/* —— Design Tokens —— */
+:root {
+    --bg: #080c10;
+    --bg2: #0d1219;
+    --bg3: #121820;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e2e8f0;
+    --muted: #4a5568;
+    --accent: #00f5c4;
+    --accent2: #0098ff;
+    --bull: #00c896;
+    --bear: #ff4560;
+    --bull-dim: rgba(0,200,150,0.15);
+    --bear-dim: rgba(255,69,96,0.15);
+    --glow: 0 0 20px rgba(0,245,196,0.3);
+}
+
+/* —— Reset —— */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* —— Grid noise overlay —— */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(rgba(0,245,196,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,245,196,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* —— Scrollbars —— */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px;}
+
+/* —— Shared helpers —— */
+.up { color: var(--bull); }
+.down { color: var(--bear); }
+.neutral { color: var(--muted); }
+
+/* ======================================= LOADING SCREEN ======================================= */
+
+/* #loading {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 16px;
+    transition: opacity 0.5s;
+}
+
+.load-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+}
+
+.load-bar {
+    width: 200px;
+    height: 2px;
+    background: var(--border2);
+    border-radius: 1px;
+    overflow: hidden;
+}
+
+.load-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.1s;
+    box-shadow: 0 0 8px var(--accent);
+}
+
+.load-text {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+} */
+
+/* ======================================= HEADER 
+=======================================*/
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,12,16,0.95);
+    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); }
+}
+
+.header-stats {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+}
+
+.stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.stat-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.stat-value.accent { color: var(--accent); }
+
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--bull);
+}
+
+/* ===========================================
+    MAIN APP GRID
+    ======================================== */
+
+.app {
+    display: grid;
+    grid-template-columns: 220px 1fr 280px;
+    grid-template-rows: 1fr 180px;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
