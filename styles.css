@@ -311,3 +311,190 @@ header {
     font-family: 'Syne', sans-serif;
     letter-spacing: -0.02em;
 }
+
+.chart-price-meta {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin-top: 2px;
+}
+
+.chart-meta-item {
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.chart-meta-item span { color: var(--text); }
+
+.interval-btns { display: flex; gap: 4px; }
+
+.interval-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    transition: all 0.15s;
+}
+
+.interval-btn:hover { border-color: var(--border2); color: var(--text); }
+.interval-btn.item-row.active { border-color: var(--accent); color: var(--accent); }
+
+canvas#chart {
+    flex: 1;
+    display: block;
+    width: 100%;
+}
+
+/* ── Events ticker ── */
+.events-ticker {
+    height: 26px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.3);
+}
+
+.ticker-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ticker-event {
+    font-size: 10px;
+    color: var(--accent);
+    white-space: nowrap;
+    animation: tickerSlide 0.4s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+@keyframes tickerSlide {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.ticker-dot { color: var(--muted); }
+
+/* ==============================================
+ORDER BOOK (right sidebar)
+============================================== */
+
+.orderbook {
+    grid-row: 1 / 3;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ob-side {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ob-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 6px 16px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.ob-header span:not(:first-child) { text-align: right; }
+
+.ob-rows { flex: 1; overflow-y: auto; }
+
+.ob-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 3px 16px;
+    position: relative;
+    font-size: 11px;
+    transition: background 0.1s;
+}
+
+.ob-row:hover { background: var(--bg3); }
+.ob-row span:not(:first-child) { text-align: right; }
+
+.ob-depth-bar {
+    position: absolute;
+    top: 0; bottom: 0;
+    right: 0;
+    opacity: 0.1;
+    transition: width 0.3s;
+}
+
+.ob-sell .ob-depth-bar { background: var(--bear); }
+.ob-buy .ob-depth-bar { background: var(--bull); }
+.ob-sell .ob-row span:first-child { color: var(--bear); }
+.ob-buy .ob-row span:first-child { color: var(--bull); }
+
+.ob-spread {
+    padding: 6px 16px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.spread-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.spred-value { font-size: 12px; color: var(--accent); }
+
+/* ==============================================
+    TRADE FEED (bottom)
+    =========================================*/
+
+.trade-feed {
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.feed-rows {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.feed-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 100px 80px 1fr;
+    padding: 4px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    animation: feedIn 0.3s ease;
+}
+
+@keyframes feedIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.feed-row.buy-row { background: rgba(0,200,150,0.03); }
+.feed-row.sell-row { background: rgba(255,69,96,0.03); }
+
+.feed-time { color: var(--muted); }
+.feed-side-buy { color: var(--bull); font-weight: 600; }
+.feed-side-sell { color: var(--bear); font-weight: 600; }
