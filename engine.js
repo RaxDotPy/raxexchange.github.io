@@ -116,3 +116,171 @@ state.items.forEach(item => {
  *   5. Momentum           — recent price trend carries forward
  *   6. Stochastic noise   — GBM volatility (higher for rarer items)
  */
+function calculateNewPrice(item, txVol, activeUsers, listedSupply) {
+    const P = item.price;
+    const PO = item.tier.basePrice;
+
+    // 1. Mean reversion (pulls price back toward base price)
+    const meanRev = 0.018 * (PO - P) / PO;
+
+    // 2. Volume pressure (more transactions → upward push)
+    const avgVol = item.txHistory.length 
+        ? item.txHistory.reduce((a, b) => a + b, 0) / item.txHistory.length 
+        : txVol;
+    const volPressure = 0.001 * Math.log1p(txVol / (avgVol + 1));
+
+    // 3. User pressure (more active users → more demand)
+    const userPressure = 0.004 * Math.log1p(activeUsers / 100);
+
+    // 4. Scarcity (low listed supply relative to demand → price spike)
+    const supplyRatio = listedSupply / Math.max(1, item.totalSupply);
+    const demandRatio = activeUsers / Math.max(1, listedSupply * 10);
+    let scarcity = 2.0 * (1 - supplyRatio) * Math.log1p(demandRatio);
+
+    if (item.tier.maxSupply) {
+        const capRatio = Math.min(1, (item.candles.length * 0.01) / item.tier.maxSupply);
+        scarcity *= (1 + capRatio * capRatio * 3);
+    }
+
+    // 5. Momentum (recent price trend carries forward)
+    let momentum = 0;
+    const hist = item.candles.slice(-5);
+    if (hist.length >= 3) {
+        const returns = hist.slice(1).map((c, i) => (c.c - hist[i].c) / hist[i].c);
+        momentum = returns.reduce((a, b) => a + b, 0) / returns.length * 0.25;
+    }
+
+    // 6. Stochastic noise (GBM volatility, higher for rarer items)
+    const VOL_BY_TIER = { CM: 0.012, UC: 0.015, RR: 0.02, EP: 0.028, LG: 0.040, MK: 0.060 };
+    const sigma = VOL_BY_TIER[item.tier.code] ?? 0.02;
+    const noise = (Math.random() - 0.5) * 2 * sigma;
+    // Combine all factors (circuit breaker: max ±15% per tick)
+    let logReturn = meanRev + volPressure + userPressure + scarcity + momentum + noise;
+    logReturn = Math.max(-0.15, Math.min(0.15, logReturn));
+
+    // Price floor: 1% of base price
+    return Math.max(PO * 0.01, P * Math.exp(logReturn));
+}
+
+// ── Market Events ────────────────────────────────────────────────────────
+
+/** 8% chance per tick of triggering a random market event. */
+function maybeTriggerEvent() {
+    if (Math.random() < 0.08) return null;
+
+    const ev = { ...EVENTS_LIST[Math.floor(Math.random() * EVENTS_LIST.length)] };
+    ev.expiresAt = Date.now() + ev.dur * 1000;
+    return ev;
+}
+
+/** Returns currently active events, pruning expired ones. */
+function getActiveEvents() {
+    const now = Date.now();
+    state.activeEvents = state.activeEvents.filter(ev => ev.expiresAt > now);
+    return state.activeEvents;
+}
+
+/** 
+ * Applies any active event modifiers to the tick's base parameters.
+ * @param {object} params - { vol, users, supply }
+ * @returns {object} Modified params
+ */
+function applyEvents(params) {
+    const events = getActiveEvents();
+    let { vol, users, supply} = params;
+
+    for (const ev of events) {
+        if (ev.effect === 'volume_spike') vol *= ev.mag;
+        if (ev.effect === 'user_surge') users = Math.floor(users * ev.mag);
+        if (ev.effect === 'supply_flood') supply = Math.floor(supply * ev.mag);
+        if (ev.effect === 'price_crash') { vol *= 1.5; supply *= 3;}
+    }
+
+    return { vol, users, supply };
+}
+
+
+// ── Main Tick ────────────────────────────────────────────────────────
+
+/**
+ * Advances the simulation by one step.
+ * Updates prices, candles, trade log, and global stats.
+ * @returns {object|null} Triggered event, if any
+*/
+function tick() {
+    state.tick++;
+    state.globalUsers = Math.max(10, state.globalUsers + (Math.random() - 0.5) * 15);
+
+    const triggeredEvent = maybeTriggerEvent();
+
+    state.items.forEach(items => {
+        const baseTxVol = Math.random() * 3 * item.tier.basePrice;
+        const params = applyEvents({
+            vol: baseTxVol,
+            users: Math.floor(state,globalUsers + Math.random() * 30 - 15),
+            supply: item.listedSupply,
+        });
+
+        const newPrice = calcNewPrice(item, params.vol, params.users, params.supply);
+        const prevPrice = item.price;
+        item.price = newPrice;
+
+        // Update or create the current 1-min candle
+        const nowSec = Math.floor(Date.now() / 1000);
+        const candleTs = Math.floor(nowSec / 60) * 60;
+        const lastCandle = item.candles.at(-1);
+
+        if (lastCandle && lastCandle.t === candleTs) {
+            lastCandle.h = Math.max(lastCandle.h, newPrice);
+            lastCandle.l = Math.min(lastCandle.l, newPrice);
+            lastCandle.c = newPrice;
+            lastCandle.v += params.vol;
+        } else {
+            item.candles.push({
+                t: candleTs,
+                o: prevPrice,
+                h: Math.max(prevPrice, newPrice),
+                l: Math.min(prevPrice, newPrice),
+                c: newPrice,
+                v: params.vol,
+            });
+            if (item.candles.length > 200) item.candles.shift();
+        }
+
+        // Update 24h stats
+        item.volume24h += params.vol;
+        item.high24h = Math.max(item.high24h, newPrice);
+        item.low24h = Math.min(item.low24h, newPrice);
+        item.change24h = ((newPrice - item.candles[0].o) / item.candles[0].o) * 100;
+
+        // Rolling transaction volume history (last 60 ticks)
+
+        item.txHistory.push(params).vol;
+        if (item.txHistory.length > 60) item.txHistory.shift();
+
+        // Randomly fluctuate listed supply
+        if (Math.random() < 0.15) {
+            item.listedSupply = Math.max(1, item.listedSupply + Math.floor(Math.random() * 5) - 2);
+        }
+
+        // Append to trade log
+        const side = Math.random() < 0.5 ? 'buy' : 'sell';
+        const qty = Math.floor(Math.random() * 5) + 1;
+
+        state.tradeLog.unshift({
+            time: new Date().toTimeString().slice(0, 8),
+            itemName: item.name,
+            side,
+            price: newPrice,
+            qty,
+            total: newPrice * qty,
+        });
+
+        state.totalTraders++;
+        state.totalVolume += params.vol;
+    });
+
+    if (state.tradeLog.length > 100) state.tradeLog.length = 100;
+
+    return triggeredEvent;
+}
