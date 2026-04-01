@@ -80,6 +80,98 @@ function drawChart() {
         ctx.fillStyle = 'rgba (74,85,104,0.8';
         ctx.font = '9px JetBrains Mono';
         ctx.textAlign = 'left';
-        ctx.fillText(formatPrice(price), W - PAD.right + 4, y + 3)
+        ctx.fillText(formatPrice(price), W - PAD.right + 4, y + 3);
     }
+
+    // ── Area fill under close line ──
+    const isUp = candles.at(-1).c >= candles[0].o;
+    const areaGrd = ctx.createLinearGradient(0,0,0,H);
+    areaGrd.addColorStop(0, isUp ? 'rgba(0,200,150,0.06' : 'rgba(255,69,96,0.06');
+    areaGrd.addColorStop(1, 'rgba(0,0,0,0');
+
+    ctx.beginPath();
+    candles.forEach((c, i) => {
+        if (i === 0) ctx.moveTo(cx(i), px(c.c));
+        else ctx.lineTo(cx(i), px(c.c));
+    });
+    ctx.lineTo(cx(candles.length -1), H);
+    ctx.lineTo(cx(0), H);
+    ctx.closePath();
+    ctx.fillStyle = areaGrd;
+    ctx.fill();
+
+    // ── Candlestick bodies & wicks ──
+    candles.forEach((c, i) => {
+        const x = cx(i);
+        const bull = c.c >= c.o;
+        const color = bull ? '#00c896' : '#ff4560';
+
+        // Wick
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, px(c.h));
+        ctx.lineTo(x, px(c.l));
+        ctx.stroke();
+
+        // Body
+        const bodyY = px(Math.max(c.o, c.c));
+        const bodyH = Math.max(1, Math.abs(px(c.o) - px(c.h)));
+
+        ctx.fillStyle = cw < 4 ? color : (bull ? 'rgba(0,200,150,0.85' : 'rgba(255,69,96,0.85');
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 0.5;
+        ctx.fillRect(x - cw / 2, bodyY, cw, bodyH);
+    });
+
+    // ── Current price dashed line ──
+    const lastPrice = candles.at(-1).c;
+    const lineY = px(lastPrice);
+
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(0,245,196,0.4';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, lineY);
+    ctx.lineTo(W - PAD.right, lineY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Price tag pill
+    ctx.fillStyle = '#00f5c4';
+    ctx.fillRect(W - PAD.right +1, lineY - 9, PAD.right - 2, 18);
+    ctx.fillStyle = '#080c10';
+    ctx.font = 'bold 9px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+        formatPrice(lastPrice),
+        W - PAD.right + (PAD.right - 2) / 2,
+        lineY + 3
+    );
+
+    // ── X-axis time labels ──
+    ctx.fillStyle = 'rgba(74, 85, 104, 0.6';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'center';
+    const labelStep = Math.max(1, Math.floor(candles.length / 8));
+
+    candles.forEach((c, i) => {
+        if (i % labelStep === 0) {
+            const d = new Date(c.t * 1000);
+            const label = d.getHours().toString().padStart(2,'0') + ':' + 
+                            d.getMinutes().toString().padStart(2, '0');
+            ctx.fillText(label, cx(i), H - PAD.bottom + 14);
+        }
+    });
+
+    // ── Volume bars (bottom strip, 12% of plot height) ──
+    const maxVol = Math.max(...candles.map(c => c.v));
+    const volH = plotH * 0.12;
+
+    candles.forEach((c, i) => {
+        const x = cx(i);
+        const h = Math.max(1, (c.v / maxVol) * volH);
+        ctx.fillStyle = c.c >= c.o ? 'rgba(0,200,150,0.3)' : 'rgba(255,69,96,0.3)';
+        ctx.fillRect(x - cw / 2, PAD.top + plotH - h, cw, h);
+    });
 }
